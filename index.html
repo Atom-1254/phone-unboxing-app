@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phone Unboxing App</title>
+    <style>
+      :root {
+        --accent: #60a5fa;
+        --dark-bg: #0a0e27;
+        --card-bg: rgba(255, 255, 255, 0.05);
+        --text: #e5eefb;
+        --text-muted: #9daec7;
+      }
+
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+          Ubuntu, Cantarell, sans-serif;
+        background: #000;
+        color: var(--text);
+        overflow: hidden;
+      }
+
+      body {
+        width: 100vw;
+        height: 100vh;
+      }
+
+      /* iPhone Notch/Status Bar */
+      .status-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 44px;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 18px;
+        z-index: 1000;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .status-left,
+      .status-right {
+        display: flex;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--text);
+      }
+
+      .status-center {
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      /* Main App Container */
+      .app-container {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      /* Unboxing Scene (Full Screen) */
+      .unboxing-scene {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(180deg, #0a0e27 0%, #000 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.4s ease;
+      }
+
+      .unboxing-scene.active {
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      .unbox-content {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .unbox-box {
+        position: relative;
+        width: 320px;
+        height: 240px;
+        margin-bottom: 60px;
+      }
+
+      .box-3d {
+        position: absolute;
+        inset: 0;
+        perspective: 1200px;
+      }
+
+      .box-face {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(145deg, #f5f5f4, #d7d5d1);
+        border-radius: 20px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        box-shadow: 0 40px 60px rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 18px;
+        color: rgba(0, 0, 0, 0.6);
+        letter-spacing: 0.1em;
+        transform-origin: center bottom;
+        transition: transform 1s cubic-bezier(0.1, 0.9, 0.2, 1);
+      }
+
+      .unbox-scene.opening .box-face {
+        transform: rotateX(-140deg) translateY(-20px);
+      }
+
+      .unbox-instruction {
+        position: absolute;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center;
+        opacity: 0;
+        animation: fadeInOut 3s ease-in-out;
+      }
+
+      @keyframes fadeInOut {
+        0% {
+          opacity: 0;
+          transform: translateX(-50%) translateY(20px);
+        }
+        25% {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+        75% {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+        100% {
+          opacity: 0;
+          transform: translateX(-50%) translateY(-20px);
+        }
+      }
+
+      .unbox-instruction p {
+        margin: 0;
+        font-size: 16px;
+        color: var(--text-muted);
+      }
+
+      .unbox-instruction small {
+        display: block;
+        margin-top: 8px;
+        font-size: 12px;
+        opacity: 0.6;
+      }
+
+      .unbox-phone {
+        position: absolute;
+        bottom: -400px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 200px;
+        height: 400px;
+        transition: all 1.2s cubic-bezier(0.15, 1, 0.2, 1) 0.6s;
+      }
+
+      .unbox-scene.opening .unbox-phone {
+        bottom: 60px;
+      }
+
+      .unbox-close-btn {
+        position: absolute;
+        bottom: 40px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: var(--text);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.3s ease;
+      }
+
+      .unbox-scene.opening .unbox-close-btn {
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      .unbox-close-btn:active {
+        transform: scale(0.9);
+      }
+
+      /* Main Content */
+      .main-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding-top: 50px;
+        overflow: hidden;
+        background: linear-gradient(180deg, var(--dark-bg) 0%, #000 100%);
+      }
+
+      .header {
+        padding: 24px 20px 16px;
+        text-align: center;
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+      }
+
+      .header p {
+        margin: 8px 0 0;
+        color: var(--text-muted);
+        font-size: 14px;
+      }
+
+      /* Carousel Container */
+      .carousel-wrapper {
+        flex: 1;
+        overflow: hidden;
+        padding: 0 12px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .carousel {
+        flex: 1;
+        display: flex;
+        gap: 16px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding: 12px 0;
+      }
+
+      .carousel::-webkit-scrollbar {
+        display: none;
+      }
+
+      .carousel-item {
+        flex: 0 0 calc(100% - 24px);
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+        border-radius: 24px;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.08),
+          rgba(255, 255, 255, 0.03)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transition: transform 0.3s ease, border-color 0.3s ease;
+        cursor: grab;
+      }
+
+      .carousel-item:active {
+        cursor: grabbing;
+      }
+
+      .carousel-item.active {
+        border-color: var(--accent);
+        box-shadow: 0 0 30px rgba(96, 165, 250, 0.2);
+      }
+
+      .phone-display {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+        min-height: 280px;
+      }
+
+      .phone-model {
+        position: relative;
+        width: 140px;
+        height: 280px;
+        border-radius: 28px;
+        background: linear-gradient(180deg, #c9d6ff, #1e293b);
+        border: 4px solid rgba(0, 0, 0, 0.3);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        overflow: hidden;
+      }
+
+      .phone-model::before {
+        content: "";
+        position: absolute;
+        inset: 8px 8px 8px 8px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .phone-notch {
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50px;
+        height: 24px;
+        background: #000;
+        border-radius: 0 0 16px 16px;
+        z-index: 10;
+      }
+
+      .phone-camera {
+        position: absolute;
+        left: 16px;
+        top: 32px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.6);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        z-index: 8;
+      }
+
+      .phone-camera::after {
+        content: "";
+        position: absolute;
+        inset: 8px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(0, 0, 0, 0.2));
+      }
+
+      .phone-screen {
+        position: absolute;
+        inset: 14px 10px 12px 10px;
+        border-radius: 22px;
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.2));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .phone-screen-badge {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        color: rgba(255, 255, 255, 0.8);
+        text-transform: uppercase;
+      }
+
+      .phone-screen-text {
+        font-size: 13px;
+        font-weight: 700;
+        color: white;
+        text-align: center;
+      }
+
+      .phone-screen-sub {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .phone-info {
+        flex-shrink: 0;
+      }
+
+      .phone-title {
+        margin: 0 0 8px;
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .phone-price {
+        margin: 0;
+        font-size: 16px;
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .phone-description {
+        margin: 12px 0;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--text-muted);
+      }
+
+      .specs-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin: 12px 0;
+      }
+
+      .spec-item {
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .spec-label {
+        display: block;
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 4px;
+      }
+
+      .spec-value {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .unbox-action-btn {
+        width: 100%;
+        padding: 14px;
+        margin-top: 12px;
+        background: linear-gradient(135deg, var(--accent), #7c3aed);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+        box-shadow: 0 10px 25px rgba(96, 165, 250, 0.25);
+      }
+
+      .unbox-action-btn:active {
+        transform: scale(0.98);
+      }
+
+      /* Indicator Dots */
+      .carousel-indicators {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        padding: 16px 0;
+        flex-shrink: 0;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .dot.active {
+        width: 24px;
+        border-radius: 4px;
+        background: var(--accent);
+      }
+
+      /* Bottom Navigation */
+      .bottom-nav {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        padding: 12px 0 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.4);
+        flex-shrink: 0;
+      }
+
+      .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
+        color: var(--text-muted);
+        font-size: 11px;
+        transition: color 0.2s ease;
+        padding: 8px 16px;
+        text-align: center;
+      }
+
+      .nav-item.active {
+        color: var(--accent);
+      }
+
+      .nav-icon {
+        font-size: 20px;
+      }
+
+      /* Sound Toggle */
+      .sound-toggle {
+        position: fixed;
+        bottom: 100px;
+        right: 20px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(96, 165, 250, 0.15);
+        border: 1px solid rgba(96, 165, 250, 0.3);
+        color: var(--accent);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        transition: all 0.3s ease;
+        z-index: 50;
+      }
+
+      .sound-toggle:active {
+        transform: scale(0.9);
+      }
+
+      .sound-toggle.muted {
+        opacity: 0.5;
+      }
+
+      /* Responsive */
+      @media (max-width: 500px) {
+        .header h1 {
+          font-size: 24px;
+        }
+
+        .phone-model {
+          width: 120px;
+          height: 240px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-left">
+        <span>📶</span>
+        <span>📡</span>
+      </div>
+      <div class="status-center">
+        <span id="statusTime">9:41</span>
+      </div>
+      <div class="status-right">
+        <span>🔋</span>
+      </div>
+    </div>
+
+    <!-- Unboxing Full Screen -->
+    <div class="unboxing-scene" id="unboxingScene">
+      <div class="unbox-content">
+        <div class="unbox-box" id="unboxBox">
+          <div class="box-3d">
+            <div class="box-face">UNBOX</div>
+          </div>
+        </div>
+
+        <div class="unbox-phone" id="unboxPhone"></div>
+
+        <div class="unbox-instruction" id="unboxInstruction">
+          <p>✨ New Device Unlocked!</p>
+          <small>Tap anywhere or close to continue</small>
+        </div>
+
+        <button class="unbox-close-btn" id="unboxCloseBtn">✕</button>
+      </div>
+    </div>
+
+    <!-- Sound Toggle -->
+    <button class="sound-toggle" id="soundToggle">🔊</button>
+
+    <!-- Main App -->
+    <div class="app-container">
+      <div class="main-content">
+        <div class="header">
+          <h1>Phone Unbox</h1>
+          <p>Explore the latest devices</p>
+        </div>
+
+        <div class="carousel-wrapper">
+          <div class="carousel" id="carousel"></div>
+          <div class="carousel-indicators" id="indicators"></div>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item active" id="navExplore">
+          <div class="nav-icon">🔍</div>
+          <span>Explore</span>
+        </div>
+        <div class="nav-item" id="navFavorites">
+          <div class="nav-icon">❤️</div>
+          <span>Favorites</span>
+        </div>
+        <div class="nav-item" id="navCompare">
+          <div class="nav-icon">⚖️</div>
+          <span>Compare</span>
+        </div>
+        <div class="nav-item" id="navSettings">
+          <div class="nav-icon">⚙️</div>
+          <span>Settings</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Phone Data
+      const phones = [
+        {
+          name: "iPhone 15 Pro Max",
+          price: "$1199",
+          description:
+            "Titanium design with A17 Pro chip. Capture stunning photos with the advanced camera system.",
+          badge: "Pro Max",
+          model: "iPhone",
+          sub: "A17 Pro",
+          bodyGradient: "linear-gradient(180deg, #e0f2fe 0%, #1d4ed8 100%)",
+          specs: [
+            ["Display", "6.7\" OLED"],
+            ["Chip", "A17 Pro"],
+            ["Camera", "48MP"],
+            ["Battery", "33h"]
+          ]
+        },
+        {
+          name: "Galaxy S24 Ultra",
+          price: "$1299",
+          description:
+            "Premium Android with AI features and the best zoom capabilities in its class.",
+          badge: "Ultra",
+          model: "Galaxy",
+          sub: "Snapdragon",
+          bodyGradient: "linear-gradient(180deg, #d8b4fe 0%, #312e81 100%)",
+          specs: [
+            ["Display", "6.8\" Dynamic"],
+            ["Chip", "Snapdragon 8"],
+            ["Camera", "200MP"],
+            ["Battery", "30h"]
+          ]
+        },
+        {
+          name: "Google Pixel 9 Pro",
+          price: "$999",
+          description:
+            "AI-powered photography with Tensor G4. Clean Android experience.",
+          badge: "Pro",
+          model: "Pixel",
+          sub: "Tensor G4",
+          bodyGradient: "linear-gradient(180deg, #bbf7d0 0%, #065f46 100%)",
+          specs: [
+            ["Display", "6.3\" OLED"],
+            ["Chip", "Tensor G4"],
+            ["Camera", "50MP"],
+            ["Battery", "24h"]
+          ]
+        },
+        {
+          name: "OnePlus 12",
+          price: "$799",
+          description:
+            "Ultra-fast performance with 120Hz display and clean OxygenOS.",
+          badge: "Flagship",
+          model: "OnePlus",
+          sub: "Snapdragon",
+          bodyGradient: "linear-gradient(180deg, #fecdd3 0%, #9f1239 100%)",
+          specs: [
+            ["Display", "6.8\" LTPO"],
+            ["Chip", "Snapdragon 8"],
+            ["Camera", "50MP"],
+            ["Battery", "26h"]
+          ]
+        },
+        {
+          name: "Nothing Phone 2",
+          price: "$599",
+          description:
+            "Distinctive Glyph interface design. Minimalist flagship experience.",
+          badge: "Glyph",
+          model: "Nothing",
+          sub: "Snapdragon",
+          bodyGradient: "linear-gradient(180deg, #fef3c7 0%, #a16207 100%)",
+          specs: [
+            ["Display", "6.7\" OLED"],
+            ["Chip", "Snapdragon 8+"],
+            ["Camera", "50MP"],
+            ["Battery", "22h"]
+          ]
+        }
+      ];
+
+      // Sound Effects
+      const sounds = {
+        swipe: new Audio(
+          "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj=="
+        ),
+        unbox: new Audio(
+          "data:audio/wav;base64,UklGRiYGAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBg=="
+        ),
+        click: new Audio(
+          "data:audio/wav;base64,UklGRiYGAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBg=="
+        )
+      };
+
+      let soundEnabled = true;
+
+      function playSound(type) {
+        if (soundEnabled && sounds[type]) {
+          sounds[type].currentTime = 0;
+          sounds[type].play().catch(() => {});
+        }
+      }
+
+      // DOM Elements
+      const carousel = document.getElementById("carousel");
+      const indicators = document.getElementById("indicators");
+      const unboxingScene = document.getElementById("unboxingScene");
+      const unboxBox = document.getElementById("unboxBox");
+      const unboxPhone = document.getElementById("unboxPhone");
+      const unboxCloseBtn = document.getElementById("unboxCloseBtn");
+      const soundToggle = document.getElementById("soundToggle");
+      const statusTime = document.getElementById("statusTime");
+
+      let currentIndex = 0;
+      let isDragging = false;
+      let startX = 0;
+      let startScrollLeft = 0;
+
+      // Initialize
+      function init() {
+        renderCarousel();
+        setupCarouselDrag();
+        updateTime();
+        setInterval(updateTime, 1000);
+      }
+
+      // Render Carousel
+      function renderCarousel() {
+        carousel.innerHTML = phones
+          .map(
+            (phone, index) => `
+          <div class="carousel-item ${index === 0 ? "active" : ""}" data-index="${index}">
+            <div class="phone-display">
+              <div class="phone-model" style="background: ${phone.bodyGradient};">
+                <div class="phone-notch"></div>
+                <div class="phone-camera"></div>
+                <div class="phone-screen">
+                  <span class="phone-screen-badge">${phone.badge}</span>
+                  <div class="phone-screen-text">${phone.model}</div>
+                  <div class="phone-screen-sub">${phone.sub}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="phone-info">
+              <h2 class="phone-title">${phone.name}</h2>
+              <p class="phone-price">${phone.price}</p>
+              <p class="phone-description">${phone.description}</p>
+
+              <div class="specs-row">
+                ${phone.specs
+                  .map(
+                    ([label, value]) => `
+                  <div class="spec-item">
+                    <span class="spec-label">${label}</span>
+                    <span class="spec-value">${value}</span>
+                  </div>
+                `
+                  )
+                  .join("")}
+              </div>
+
+              <button class="unbox-action-btn" onclick="unboxPhone(${index})">
+                🎁 Unbox Now
+              </button>
+            </div>
+          </div>
+        `
+          )
+          .join("");
+
+        renderIndicators();
+      }
+
+      // Render Indicators
+      function renderIndicators() {
+        indicators.innerHTML = phones
+          .map(
+            (_, index) => `
+          <div class="dot ${index === currentIndex ? "active" : ""}" onclick="scrollToPhone(${index})"></div>
+        `
+          )
+          .join("");
+      }
+
+      // Setup Carousel Drag
+      function setupCarouselDrag() {
+        carousel.addEventListener("mousedown", startDrag);
+        carousel.addEventListener("touchstart", startDrag);
+        carousel.addEventListener("mousemove", drag);
+        carousel.addEventListener("touchmove", drag);
+        carousel.addEventListener("mouseup", endDrag);
+        carousel.addEventListener("touchend", endDrag);
+        carousel.addEventListener("mouseleave", endDrag);
+        carousel.addEventListener("scroll", updateActiveItem);
+      }
+
+      function startDrag(e) {
+        isDragging = true;
+        startX = e.type.includes("touch") ? e.touches[0].clientX : e.clientX;
+        startScrollLeft = carousel.scrollLeft;
+      }
+
+      function drag(e) {
+        if (!isDragging) return;
+        const x = e.type.includes("touch") ? e.touches[0].clientX : e.clientX;
+        const walk = (startX - x) * 1.5;
+        carousel.scrollLeft = startScrollLeft + walk;
+      }
+
+      function endDrag() {
+        isDragging = false;
+        playSound("swipe");
+        snapToNearest();
+      }
+
+      function snapToNearest() {
+        const items = document.querySelectorAll(".carousel-item");
+        const scrollCenter = carousel.scrollLeft + carousel.clientWidth / 2;
+        let nearest = 0;
+        let minDistance = Infinity;
+
+        items.forEach((item, index) => {
+          const distance = Math.abs(
+            item.offsetLeft + item.clientWidth / 2 - scrollCenter
+          );
+          if (distance < minDistance) {
+            minDistance = distance;
+            nearest = index;
+          }
+        });
+
+        scrollToPhone(nearest);
+      }
+
+      function scrollToPhone(index) {
+        const item = document.querySelectorAll(".carousel-item")[index];
+        if (item) {
+          item.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+            inline: "center"
+          });
+          currentIndex = index;
+          playSound("click");
+        }
+      }
+
+      function updateActiveItem() {
+        const items = document.querySelectorAll(".carousel-item");
+        const scrollCenter = carousel.scrollLeft + carousel.clientWidth / 2;
+        let nearest = 0;
+        let minDistance = Infinity;
+
+        items.forEach((item, index) => {
+          const distance = Math.abs(
+            item.offsetLeft + item.clientWidth / 2 - scrollCenter
+          );
+          if (distance < minDistance) {
+            minDistance = distance;
+            nearest = index;
+          }
+        });
+
+        if (nearest !== currentIndex) {
+          currentIndex = nearest;
+          renderIndicators();
+        }
+      }
+
+      // Unboxing Animation
+      window.unboxPhone = function (index) {
+        currentIndex = index;
+        const phone = phones[index];
+
+        // Update accent color
+        document.documentElement.style.setProperty("--accent", "#60a5fa");
+
+        // Create phone model in unbox screen
+        unboxPhone.innerHTML = `
+          <div class="phone-model" style="background: ${phone.bodyGradient};">
+            <div class="phone-notch"></div>
+            <div class="phone-camera"></div>
+            <div class="phone-screen">
+              <span class="phone-screen-badge">${phone.badge}</span>
+              <div class="phone-screen-text">${phone.model}</div>
+              <div class="phone-screen-sub">${phone.sub}</div>
+            </div>
+          </div>
+        `;
+
+        unboxingScene.classList.add("active");
+        playSound("unbox");
+
+        setTimeout(() => {
+          unboxingScene.classList.add("opening");
+        }, 600);
+      };
+
+      // Close Unboxing
+      function closeUnboxing() {
+        unboxingScene.classList.remove("opening");
+        setTimeout(() => {
+          unboxingScene.classList.remove("active");
+        }, 400);
+        playSound("click");
+      }
+
+      unboxCloseBtn.addEventListener("click", closeUnboxing);
+      unboxingScene.addEventListener("click", (e) => {
+        if (e.target === unboxingScene) closeUnboxing();
+      });
+
+      // Sound Toggle
+      soundToggle.addEventListener("click", () => {
+        soundEnabled = !soundEnabled;
+        soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
+        soundToggle.classList.toggle("muted");
+        playSound("click");
+      });
+
+      // Update Time
+      function updateTime() {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, "0");
+        const minutes = now.getMinutes().toString().padStart(2, "0");
+        statusTime.textContent = `${hours}:${minutes}`;
+      }
+
+      // Bottom Nav
+      document.querySelectorAll(".nav-item").forEach((item) => {
+        item.addEventListener("click", () => {
+          document.querySelectorAll(".nav-item").forEach((i) => i.classList.remove("active"));
+          item.classList.add("active");
+          playSound("click");
+        });
+      });
+
+      init();
+    </script>
+  </body>
+</html>
